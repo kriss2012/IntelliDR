@@ -1,0 +1,2 @@
+[console_scripts]
+intellidr-edge = intellidr_edge.cli.main:main

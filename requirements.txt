@@ -1,0 +1,18 @@
+# IntelliDR - AI-ML Based Intelligent Dead Reckoning System
+# Core Scientific & ML Dependencies
+numpy>=1.24.0
+scipy>=1.10.0
+pandas>=2.0.0
+matplotlib>=3.7.0
+torch>=2.0.0
+onnx>=1.14.0
+onnxruntime>=1.15.0
+
+# Preprocessing & Utilities
+pyyaml>=6.0
+tqdm>=4.65.0
+pytest>=7.3.0
+pyserial>=3.5
+
+# Optional Geographic Tools
+pyproj>=3.5.0; sys_platform != "win32" or python_version < "3.12"

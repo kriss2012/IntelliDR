@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  intellidr-edge:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: intellidr_edge_engine
+    environment:
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./data:/app/data
+      - ./models:/app/models
+      - ./results:/app/results
+      - ./maps:/app/maps
+    ports:
+      - "5555:5555/udp"
+    command: ["python", "-m", "intellidr_edge.cli.main", "stream", "--port", "5555"]
+
+  intellidr-benchmark:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: intellidr_eval_pipeline
+    volumes:
+      - ./data:/app/data
+      - ./models:/app/models
+      - ./results:/app/results
+      - ./maps:/app/maps
+    command: ["python", "-m", "intellidr_edge.cli.main", "evaluate-all"]

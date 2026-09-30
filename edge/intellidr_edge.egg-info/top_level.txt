@@ -1,0 +1,3 @@
+intellidr_ai
+intellidr_core
+intellidr_edge
