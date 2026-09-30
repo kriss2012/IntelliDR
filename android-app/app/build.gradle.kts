@@ -5,12 +5,12 @@ plugins {
 
 android {
     namespace = "com.logiclegend2.intellidr"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.logiclegend2.intellidr"
         minSdk = 26
-        targetSdk = 34
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0.0"
 
@@ -20,9 +20,21 @@ android {
         }
     }
 
+    signingConfigs {
+        create("release") {
+            storeFile = rootProject.file("intellidr-release.jks")
+            storePassword = "intellidr2026"
+            keyAlias = "intellidr_key"
+            keyPassword = "intellidr2026"
+            enableV1Signing = true
+            enableV2Signing = true
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
