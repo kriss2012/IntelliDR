@@ -125,16 +125,16 @@ class SensorReplayEngine:
                 gz = 0.0
                 v = max(0.0, cruise_speed_mps + ax * (t - 105.0))
 
-            # Add sensor noise and vehicle vibrations
-            vib_noise_a = np.random.normal(0.0, 0.08, 3)
-            vib_noise_w = np.random.normal(0.0, 0.005, 3)
+            # Add sensor noise and vehicle vibrations proportional to velocity
+            vib_intensity = 0.02 if v < 0.2 else (0.15 + 0.25 * (v / max(1.0, cruise_speed_mps)))
+            vib_noise_a = np.random.normal(0.0, vib_intensity, 3)
+            vib_noise_w = np.random.normal(0.0, 0.005 if v < 0.2 else 0.02, 3)
 
-            # In phone frame (assuming phone is mounted with Y pointing forward, Z out of screen)
-            # We add gravity along Z (phone resting on dashboard)
+            # In vehicle frame: X is forward, Y is right, Z is down/vertical
             imu_sample = IMUSample(
                 timestamp=round(t, 4),
-                ax=float(vib_noise_a[0]),
-                ay=float(ax + vib_noise_a[1]),
+                ax=float(ax + vib_noise_a[0]),
+                ay=float(vib_noise_a[1]),
                 az=float(9.80665 + vib_noise_a[2]),
                 gx=float(vib_noise_w[0]),
                 gy=float(vib_noise_w[1]),

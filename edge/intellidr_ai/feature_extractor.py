@@ -112,7 +112,8 @@ class IMUFeatureExtractor:
         gyro_activity = float(np.mean(norm_w))
         accel_variance = float(np.var(norm_a))
 
-        if accel_variance < 0.02 and gyro_activity < 0.03:
+        # Stationary requires low variance, low gyro activity, and zero mean longitudinal acceleration
+        if accel_variance < 0.005 and gyro_activity < 0.015 and abs(mean_ax) < 0.08:
             self.current_motion_state = MotionClassifier.STATIONARY
         elif self.pothole_detected:
             self.current_motion_state = MotionClassifier.POTHOLE_SHOCK

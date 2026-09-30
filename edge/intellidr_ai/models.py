@@ -12,6 +12,7 @@ Provides:
 """
 
 import math
+import os
 from typing import Dict, Optional, Tuple
 import numpy as np
 
@@ -49,24 +50,46 @@ class NeuralVelocityEstimator:
     Includes calibrated weights trained on vehicular driving datasets.
     """
 
-    def __init__(self):
+    def __init__(self, weights_path: Optional[str] = None):
         # Weights initialized and calibrated for vehicular IMU dynamics (16 -> 32 -> 16 -> 1)
         np.random.seed(42)
-        # Layer 1: 16 -> 32
         self.w1 = np.random.randn(16, 32).astype(np.float32) * 0.15
         self.b1 = np.zeros(32, dtype=np.float32)
-        
-        # Layer 2: 32 -> 16
         self.w2 = np.random.randn(32, 16).astype(np.float32) * 0.15
         self.b2 = np.zeros(16, dtype=np.float32)
-
-        # Output layer: 16 -> 1
         self.w3 = np.random.randn(16, 1).astype(np.float32) * 0.20
         self.b3 = np.array([0.5], dtype=np.float32)
 
-        # Feature normalization parameters (mean and standard deviation)
         self.feat_mean = np.zeros(16, dtype=np.float32)
         self.feat_std = np.ones(16, dtype=np.float32)
+
+        # Check default paths for trained weights
+        candidates = [
+            weights_path,
+            "data/models/velocity_model_weights.json",
+            os.path.join(os.path.dirname(__file__), "..", "..", "data", "models", "velocity_model_weights.json"),
+        ]
+        for p in candidates:
+            if p and os.path.exists(p):
+                self.load_from_json(p)
+                break
+
+    def load_from_json(self, file_path: str):
+        """Load trained weights from JSON file."""
+        try:
+            import json
+            with open(file_path, "r", encoding="utf-8") as f:
+                d = json.load(f)
+            self.w1 = np.array(d["w1"], dtype=np.float32)
+            self.b1 = np.array(d["b1"], dtype=np.float32)
+            self.w2 = np.array(d["w2"], dtype=np.float32)
+            self.b2 = np.array(d["b2"], dtype=np.float32)
+            self.w3 = np.array(d["w3"], dtype=np.float32)
+            self.b3 = np.array(d["b3"], dtype=np.float32)
+            self.feat_mean = np.array(d["feature_mean"], dtype=np.float32)
+            self.feat_std = np.array(d["feature_std"], dtype=np.float32)
+        except Exception:
+            pass
 
     def set_weights(self, w1: np.ndarray, b1: np.ndarray, w2: np.ndarray, b2: np.ndarray, w3: np.ndarray, b3: np.ndarray, mean: np.ndarray, std: np.ndarray):
         """Load trained neural network weights."""

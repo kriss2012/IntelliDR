@@ -107,11 +107,14 @@ class GNSSOutageManager:
             self.current_state = OutageState.GNSS_DEGRADED
             return OutageState.GNSS_DEGRADED, True
 
-        # Check 3: Innovation outlier gating (detect multipath jumps)
+        # Record that a physically valid GNSS packet arrived
+        self.last_healthy_gnss_ts = ts
+
+        # Check 3: Innovation outlier gating (detect multipath jumps only after convergence)
         if current_estimated_pos_enu is not None and sample_enu_pos is not None:
             dist = float(np.linalg.norm(sample_enu_pos[0:2] - current_estimated_pos_enu[0:2]))
-            if dist > self.max_innovation_jump:
-                # Suspect multipath anomaly; reject for update
+            # Only gate if jump is anomalous (> 100m without outage)
+            if dist > 120.0 and self.current_state == OutageState.GNSS_AVAILABLE:
                 return OutageState.GNSS_DEGRADED, False
 
         # Check 4: Recovery handling
@@ -133,7 +136,6 @@ class GNSSOutageManager:
             self.current_state = OutageState.GNSS_AVAILABLE
             self.outage_start_ts = None
 
-        self.last_healthy_gnss_ts = ts
         return self.current_state, True
 
     def check_timeout(self, current_ts: float) -> OutageState:

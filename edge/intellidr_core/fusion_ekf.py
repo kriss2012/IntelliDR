@@ -99,9 +99,23 @@ class ErrorStateEKF:
         w_b = gyro_body - self.gyro_bias
 
         r_b2n = quaternion_to_rotation_matrix(self.q)
-        f_n = r_b2n @ f_b
+        # 1. Propagate nominal attitude quaternion
+        rot_angle = np.linalg.norm(w_b * dt)
+        if rot_angle > 1e-12:
+            half = rot_angle * 0.5
+            s = math.sin(half) / rot_angle
+            dq = np.array([math.cos(half), w_b[0] * dt * s, w_b[1] * dt * s, w_b[2] * dt * s])
+            self.q = quaternion_multiply(self.q, dq)
+            self.q /= np.linalg.norm(self.q)
 
-        # 1. State transition matrix F (15x15 discrete approx: I + F_c * dt)
+        # 2. Transform specific force and propagate nominal velocity and position
+        r_b2n = quaternion_to_rotation_matrix(self.q)
+        f_n = r_b2n @ f_b
+        a_nav = f_n + np.array([0.0, 0.0, -9.80665])
+        self.v_enu += a_nav * dt
+        self.p_enu += self.v_enu * dt
+
+        # 3. State transition matrix F (15x15 discrete approx: I + F_c * dt)
         F = np.eye(15, dtype=np.float64)
         # d(p)/d(v) = I * dt
         F[0:3, 3:6] = np.eye(3) * dt
