@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.logiclegend2.intellidr.AdaptiveLayoutTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-09-30T11:13:14.645Z" hostname="IMRDCOMP174" time="0.011">
+  <properties/>
+  <testcase name="testTelemetryFormatterIntegrity" classname="com.logiclegend2.intellidr.AdaptiveLayoutTest" time="0.009"/>
+  <testcase name="testWindowSizeClassBreakpoints" classname="com.logiclegend2.intellidr.AdaptiveLayoutTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
