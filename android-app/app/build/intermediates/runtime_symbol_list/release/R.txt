@@ -343,8 +343,9 @@ int style TextAppearance_Compat_Notification_Info 0x7f090004
 int style TextAppearance_Compat_Notification_Line2 0x7f090005
 int style TextAppearance_Compat_Notification_Time 0x7f090006
 int style TextAppearance_Compat_Notification_Title 0x7f090007
-int style Widget_Compat_NotificationActionContainer 0x7f090008
-int style Widget_Compat_NotificationActionText 0x7f090009
+int style Theme_IntelliDR 0x7f090008
+int style Widget_Compat_NotificationActionContainer 0x7f090009
+int style Widget_Compat_NotificationActionText 0x7f09000a
 int[] styleable Capability { 0x7f01000e, 0x7f01000f }
 int styleable Capability_queryPatterns 0
 int styleable Capability_shortcutMatchRequired 1

@@ -124,13 +124,13 @@ MERGED from [androidx.startup:startup-runtime:1.1.1] C:\Users\IMRD\.gradle\cache
 	android:allowBackup
 		ADDED from G:\IntelliDR\android-app\app\src\main\AndroidManifest.xml:17:9-35
 	android:theme
-		ADDED from G:\IntelliDR\android-app\app\src\main\AndroidManifest.xml:22:9-66
+		ADDED from G:\IntelliDR\android-app\app\src\main\AndroidManifest.xml:22:9-47
 activity#com.logiclegend2.intellidr.MainActivity
 ADDED from G:\IntelliDR\android-app\app\src\main\AndroidManifest.xml:24:9-32:20
 	android:exported
 		ADDED from G:\IntelliDR\android-app\app\src\main\AndroidManifest.xml:26:13-36
 	android:theme
-		ADDED from G:\IntelliDR\android-app\app\src\main\AndroidManifest.xml:27:13-70
+		ADDED from G:\IntelliDR\android-app\app\src\main\AndroidManifest.xml:27:13-51
 	android:name
 		ADDED from G:\IntelliDR\android-app\app\src\main\AndroidManifest.xml:25:13-41
 intent-filter#action:name:android.intent.action.MAIN+category:name:android.intent.category.LAUNCHER

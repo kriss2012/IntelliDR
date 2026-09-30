@@ -1,7 +1,7 @@
 com.logiclegend2.intellidr:styleable/GradientColor = 0x7f0a0004
 com.logiclegend2.intellidr:styleable/FontFamily = 0x7f0a0002
-com.logiclegend2.intellidr:style/Widget.Compat.NotificationActionText = 0x7f090009
-com.logiclegend2.intellidr:style/Widget.Compat.NotificationActionContainer = 0x7f090008
+com.logiclegend2.intellidr:style/Widget.Compat.NotificationActionText = 0x7f09000a
+com.logiclegend2.intellidr:style/Widget.Compat.NotificationActionContainer = 0x7f090009
 com.logiclegend2.intellidr:style/TextAppearance.Compat.Notification.Title = 0x7f090007
 com.logiclegend2.intellidr:style/TextAppearance.Compat.Notification.Line2 = 0x7f090005
 com.logiclegend2.intellidr:style/TextAppearance.Compat.Notification.Info = 0x7f090004
@@ -31,6 +31,7 @@ com.logiclegend2.intellidr:string/m3c_suggestions_available = 0x7f080058
 com.logiclegend2.intellidr:string/m3c_search_bar_search = 0x7f080056
 com.logiclegend2.intellidr:string/m3c_dropdown_menu_collapsed = 0x7f080054
 com.logiclegend2.intellidr:string/m3c_dialog = 0x7f080053
+com.logiclegend2.intellidr:style/Theme.IntelliDR = 0x7f090008
 com.logiclegend2.intellidr:string/m3c_date_range_picker_title = 0x7f080052
 com.logiclegend2.intellidr:string/status_bar_notification_info_overflow = 0x7f08007f
 com.logiclegend2.intellidr:string/m3c_date_range_picker_start_headline = 0x7f080051

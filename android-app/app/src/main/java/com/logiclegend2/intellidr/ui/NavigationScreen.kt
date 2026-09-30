@@ -18,11 +18,21 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.logiclegend2.intellidr.model.OutageState
 import com.logiclegend2.intellidr.model.VehicleTelemetry
-import kotlin.math.*
+import com.logiclegend2.intellidr.ui.components.PrimaryActionButton
+import com.logiclegend2.intellidr.ui.components.StatusBadge
+import com.logiclegend2.intellidr.ui.components.BadgeStyle
+import com.logiclegend2.intellidr.ui.responsive.Formatter
+import com.logiclegend2.intellidr.ui.responsive.rememberWindowSizeInfo
+import com.logiclegend2.intellidr.ui.theme.IntelliDRColors
+import com.logiclegend2.intellidr.ui.theme.IntelliDRSpacing
+import com.logiclegend2.intellidr.ui.theme.IntelliDRTypography
+import kotlin.math.cos
+import kotlin.math.sin
 
 /**
- * Primary Real-Time Navigation Screen
+ * Primary Real-Time Navigation Cockpit Screen
  * Displays dark vehicular map view, heading compass, speed HUD, and live telemetry.
+ * Fully inset-aware and responsive across portrait, landscape, and tablets.
  */
 @Composable
 fun NavigationScreen(
@@ -31,226 +41,315 @@ fun NavigationScreen(
     onToggleOutage: () -> Unit,
     onOpenJudgeMode: () -> Unit
 ) {
-    val darkBg = Color(0xFF090D16)
-    val cardBg = Color(0xFF1E293B)
+    val windowInfo = rememberWindowSizeInfo()
+    val isTwoPane = windowInfo.isExpanded || (windowInfo.isMedium && windowInfo.isLandscapePhone)
 
-    val statusColor = when (telemetry.outageState) {
-        OutageState.GNSS_AVAILABLE -> Color(0xFF10B981)
-        OutageState.GNSS_RECOVERING -> Color(0xFF3B82F6)
-        OutageState.GNSS_DEGRADED -> Color(0xFFF59E0B)
-        OutageState.DEAD_RECKONING, OutageState.GNSS_LOST -> Color(0xFFEF4444)
+    val (statusColor, badgeStyle) = when (telemetry.outageState) {
+        OutageState.GNSS_AVAILABLE -> Pair(IntelliDRColors.Success, BadgeStyle.SUCCESS)
+        OutageState.GNSS_RECOVERING -> Pair(IntelliDRColors.Info, BadgeStyle.INFO)
+        OutageState.GNSS_DEGRADED -> Pair(IntelliDRColors.Warning, BadgeStyle.WARNING)
+        OutageState.DEAD_RECKONING, OutageState.GNSS_LOST -> Pair(IntelliDRColors.Danger, BadgeStyle.DANGER)
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(darkBg)
-    ) {
-        // Center: Interactive Navigation Map Canvas
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            val center = Offset(size.width / 2f, size.height / 2f)
-
-            // Draw road grid lines
-            drawLine(
-                color = Color(0xFF334155),
-                start = Offset(center.x, 0f),
-                end = Offset(center.x, size.height),
-                strokeWidth = 24.dp.toPx()
-            )
-            drawLine(
-                color = Color(0xFF1E293B),
-                start = Offset(0f, center.y),
-                end = Offset(size.width, center.y),
-                strokeWidth = 16.dp.toPx()
-            )
-
-            // Draw dashed center lane line
-            val dashHeight = 20.dp.toPx()
-            val dashSpace = 15.dp.toPx()
-            var y = 0f
-            while (y < size.height) {
-                drawLine(
-                    color = Color(0xFFFBBF24),
-                    start = Offset(center.x, y),
-                    end = Offset(center.x, y + dashHeight),
-                    strokeWidth = 3.dp.toPx()
-                )
-                y += dashHeight + dashSpace
-            }
-
-            // Draw Vehicle Marker (Directional Chevron) rotated by heading
-            val headRad = Math.toRadians((telemetry.headingDeg).toDouble())
-            val markerSize = 22.dp.toPx()
-            val tipX = center.x + markerSize * sin(headRad).toFloat()
-            val tipY = center.y - markerSize * cos(headRad).toFloat()
-            val leftX = center.x + (markerSize * 0.7f) * sin(headRad + 2.5).toFloat()
-            val leftY = center.y - (markerSize * 0.7f) * cos(headRad + 2.5).toFloat()
-            val rightX = center.x + (markerSize * 0.7f) * sin(headRad - 2.5).toFloat()
-            val rightY = center.y - (markerSize * 0.7f) * cos(headRad - 2.5).toFloat()
-
-            val markerPath = Path().apply {
-                moveTo(tipX, tipY)
-                lineTo(leftX, leftY)
-                lineTo(center.x, center.y)
-                lineTo(rightX, rightY)
-                close()
-            }
-            drawPath(markerPath, color = Color(0xFF38BDF8))
-
-            // Accuracy bubble
-            drawCircle(
-                color = statusColor.copy(alpha = 0.15f),
-                radius = 35.dp.toPx(),
-                center = center
-            )
-        }
-
-        // Top HUD Overlay
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-                .align(Alignment.TopCenter)
-        ) {
+    if (isTwoPane) {
+        // Landscape & Tablet 2-Pane Navigation Cockpit
+        Scaffold(
+            containerColor = IntelliDRColors.Background
+        ) { innerPadding ->
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .windowInsetsPadding(WindowInsets.safeDrawing)
             ) {
-                // Status pill
-                Surface(
-                    shape = RoundedCornerShape(20.dp),
-                    color = statusColor.copy(alpha = 0.2f),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, statusColor)
+                // Left: Map Canvas
+                Box(
+                    modifier = Modifier
+                        .weight(1.2f)
+                        .fillMaxHeight()
                 ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                    NavigationMapCanvas(telemetry = telemetry, statusColor = statusColor)
+
+                    // Map Overlay: Road Name Pill
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = IntelliDRColors.SurfaceCard.copy(alpha = 0.90f),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, IntelliDRColors.SurfaceBorder),
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(IntelliDRSpacing.md)
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(8.dp)
-                                .background(statusColor, CircleShape)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "ROAD: ${telemetry.matchedRoadName}",
+                                style = IntelliDRTypography.Subtitle,
+                                color = IntelliDRColors.TextPrimary
+                            )
+                        }
+                    }
+                }
+
+                // Right: Cockpit Controls & Telemetry
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .background(IntelliDRColors.Surface)
+                        .padding(IntelliDRSpacing.lg),
+                    verticalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(IntelliDRSpacing.md)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            StatusBadge(text = telemetry.outageState.label, style = badgeStyle)
+                            Button(
+                                onClick = onOpenJudgeMode,
+                                shape = RoundedCornerShape(8.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = IntelliDRColors.PrimaryMuted),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                            ) {
+                                Text("JUDGE CONTROL", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+
+                        // Speedometer & Telemetry
+                        Row(verticalAlignment = Alignment.Bottom) {
+                            Text(
+                                text = "${telemetry.speedKmh.toInt()}",
+                                style = IntelliDRTypography.MetricValueLarge,
+                                fontSize = 46.sp
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "km/h",
+                                style = IntelliDRTypography.MetricUnit,
+                                fontSize = 14.sp,
+                                modifier = Modifier.padding(bottom = 6.dp)
+                            )
+                        }
+
                         Text(
-                            text = telemetry.outageState.label,
-                            color = statusColor,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 11.sp
+                            text = "HEADING: ${Formatter.heading(telemetry.headingDeg)} | AI VEL: ${Formatter.velocity(telemetry.aiSpeedKmh)} km/h",
+                            style = IntelliDRTypography.Subtitle,
+                            color = IntelliDRColors.Primary
+                        )
+
+                        Text(
+                            text = "DRIFT: ${Formatter.driftMeters(telemetry.driftM)} (${Formatter.driftPct(telemetry.driftPct)})",
+                            style = IntelliDRTypography.Subtitle,
+                            color = if (telemetry.driftPct < 10.0) IntelliDRColors.Success else IntelliDRColors.Danger
+                        )
+
+                        Text(
+                            text = "FUSION: ${telemetry.fusionMode.label}",
+                            style = IntelliDRTypography.Subtitle,
+                            color = IntelliDRColors.TextSecondary
                         )
                     }
-                }
 
-                // SIH Judge Mode button
-                Button(
-                    onClick = onOpenJudgeMode,
-                    shape = RoundedCornerShape(20.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3B82F6)),
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
-                ) {
-                    Text("SIH JUDGE MODE", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Road Name Banner
-            Card(
-                shape = RoundedCornerShape(10.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A).copy(alpha = 0.90f)),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Column {
-                        Text("CURRENT ROAD (OFFLINE MAP)", color = Color(0xFF94A3B8), fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                        Text(telemetry.matchedRoadName, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                    }
-                    Text("50 km/h", color = Color(0xFFFBBF24), fontWeight = FontWeight.Black, fontSize = 14.sp)
+                    PrimaryActionButton(
+                        isSimulatingOutage = isSimulatingOutage,
+                        onClick = onToggleOutage
+                    )
                 }
             }
         }
-
-        // Bottom Cockpit HUD Card
-        Card(
-            shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
-            colors = CardDefaults.cardColors(containerColor = cardBg),
+    } else {
+        // Portrait Mobile Fullscreen Cockpit with Safe Insets
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.BottomCenter)
+                .fillMaxSize()
+                .background(IntelliDRColors.Background)
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
+            // Background: Interactive Map Canvas
+            NavigationMapCanvas(
+                telemetry = telemetry,
+                statusColor = statusColor,
+                modifier = Modifier.fillMaxSize()
+            )
+
+            // Top HUD Overlay: System status & Navigation Header
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .windowInsetsPadding(WindowInsets.statusBars)
+                    .padding(horizontal = IntelliDRSpacing.lg, vertical = IntelliDRSpacing.sm)
+                    .align(Alignment.TopCenter)
+            ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Speedometer
-                    Row(verticalAlignment = Alignment.Bottom) {
-                        Text(
-                            text = "${telemetry.speedKmh.toInt()}",
-                            color = Color.White,
-                            fontSize = 42.sp,
-                            fontWeight = FontWeight.Black,
-                            fontFamily = FontFamily.Monospace
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "km/h",
-                            color = Color(0xFF94A3B8),
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(bottom = 8.dp)
-                        )
-                    }
+                    StatusBadge(text = telemetry.outageState.label, style = badgeStyle)
 
-                    // Heading and Mode
-                    Column(horizontalAlignment = Alignment.End) {
-                        Text(
-                            text = "HEADING: ${telemetry.headingDeg.toInt()}°",
-                            color = Color(0xFF38BDF8),
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            fontFamily = FontFamily.Monospace
-                        )
-                        Text(
-                            text = telemetry.fusionMode.label,
-                            color = statusColor,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "Drift: %.1fm (%.1f%%)".format(telemetry.driftM, telemetry.driftPct),
-                            color = Color(0xFF94A3B8),
-                            fontSize = 11.sp
-                        )
+                    Button(
+                        onClick = onOpenJudgeMode,
+                        shape = RoundedCornerShape(20.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = IntelliDRColors.PrimaryMuted),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                    ) {
+                        Text("SIH JUDGE MODE", fontSize = 11.sp, fontWeight = FontWeight.Bold)
                     }
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(IntelliDRSpacing.sm))
 
-                // Outage Action Button
-                Button(
-                    onClick = onToggleOutage,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isSimulatingOutage) Color(0xFF10B981) else Color(0xFFEF4444)
-                    ),
+                // Road Name Banner
+                Surface(
                     shape = RoundedCornerShape(10.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp)
+                    color = IntelliDRColors.SurfaceCard.copy(alpha = 0.90f),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, IntelliDRColors.SurfaceBorder),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(
-                        text = if (isSimulatingOutage) "RESTORE GNSS SIGNAL" else "SIMULATE GNSS OUTAGE (TUNNEL ENTRY)",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 13.sp
+                    Row(
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column {
+                            Text("OFFLINE ROAD GRAPH", style = IntelliDRTypography.MetricLabel)
+                            Text(telemetry.matchedRoadName, style = IntelliDRTypography.CardTitle)
+                        }
+                        Text(
+                            text = "50 km/h",
+                            color = IntelliDRColors.RoadCenterline,
+                            fontWeight = FontWeight.Black,
+                            fontSize = 13.sp
+                        )
+                    }
+                }
+            }
+
+            // Bottom Cockpit HUD: Speedometer, Heading, Outage Action
+            Surface(
+                shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+                color = IntelliDRColors.SurfaceCard,
+                border = androidx.compose.foundation.BorderStroke(1.dp, IntelliDRColors.SurfaceBorder),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.BottomCenter)
+                    .windowInsetsPadding(WindowInsets.navigationBars)
+            ) {
+                Column(modifier = Modifier.padding(IntelliDRSpacing.lg)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.Bottom) {
+                            Text(
+                                text = "${telemetry.speedKmh.toInt()}",
+                                style = IntelliDRTypography.MetricValueLarge,
+                                fontSize = 40.sp
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "km/h",
+                                style = IntelliDRTypography.MetricUnit,
+                                fontSize = 13.sp,
+                                modifier = Modifier.padding(bottom = 6.dp)
+                            )
+                        }
+
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text(
+                                text = "HEADING: ${Formatter.heading(telemetry.headingDeg)}",
+                                style = IntelliDRTypography.Subtitle,
+                                color = IntelliDRColors.Primary
+                            )
+                            Text(
+                                text = telemetry.fusionMode.label,
+                                style = IntelliDRTypography.Subtitle,
+                                color = statusColor
+                            )
+                            Text(
+                                text = "Drift: ${Formatter.driftMeters(telemetry.driftM)} (${Formatter.driftPct(telemetry.driftPct)})",
+                                style = IntelliDRTypography.Subtitle,
+                                color = if (telemetry.driftPct < 10.0) IntelliDRColors.Success else IntelliDRColors.Danger
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(IntelliDRSpacing.md))
+
+                    PrimaryActionButton(
+                        isSimulatingOutage = isSimulatingOutage,
+                        onClick = onToggleOutage
                     )
                 }
             }
         }
+    }
+}
+
+@Composable
+fun NavigationMapCanvas(
+    telemetry: VehicleTelemetry,
+    statusColor: Color,
+    modifier: Modifier = Modifier
+) {
+    Canvas(modifier = modifier) {
+        val center = Offset(size.width / 2f, size.height / 2f)
+
+        // Road Lines
+        drawLine(
+            color = IntelliDRColors.RoadAsphalt,
+            start = Offset(center.x, 0f),
+            end = Offset(center.x, size.height),
+            strokeWidth = 24.dp.toPx()
+        )
+        drawLine(
+            color = IntelliDRColors.SurfaceElevated,
+            start = Offset(0f, center.y),
+            end = Offset(size.width, center.y),
+            strokeWidth = 16.dp.toPx()
+        )
+
+        // Dashed Centerline
+        val dashHeight = 20.dp.toPx()
+        val dashSpace = 15.dp.toPx()
+        var y = 0f
+        while (y < size.height) {
+            drawLine(
+                color = IntelliDRColors.RoadCenterline,
+                start = Offset(center.x, y),
+                end = Offset(center.x, y + dashHeight),
+                strokeWidth = 3.dp.toPx()
+            )
+            y += dashHeight + dashSpace
+        }
+
+        // Vehicle Chevron Directional Marker
+        val headRad = Math.toRadians(telemetry.headingDeg.toDouble())
+        val markerSize = 22.dp.toPx()
+        val tipX = center.x + markerSize * sin(headRad).toFloat()
+        val tipY = center.y - markerSize * cos(headRad).toFloat()
+        val leftX = center.x + (markerSize * 0.7f) * sin(headRad + 2.5).toFloat()
+        val leftY = center.y - (markerSize * 0.7f) * cos(headRad + 2.5).toFloat()
+        val rightX = center.x + (markerSize * 0.7f) * sin(headRad - 2.5).toFloat()
+        val rightY = center.y - (markerSize * 0.7f) * cos(headRad - 2.5).toFloat()
+
+        val markerPath = Path().apply {
+            moveTo(tipX, tipY)
+            lineTo(leftX, leftY)
+            lineTo(center.x, center.y)
+            lineTo(rightX, rightY)
+            close()
+        }
+        drawPath(markerPath, color = IntelliDRColors.Primary)
+
+        // Positional uncertainty bubble
+        drawCircle(
+            color = statusColor.copy(alpha = 0.15f),
+            radius = 35.dp.toPx(),
+            center = center
+        )
     }
 }

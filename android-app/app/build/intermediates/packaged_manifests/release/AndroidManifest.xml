@@ -51,11 +51,11 @@
         android:label="IntelliDR"
         android:roundIcon="@android:drawable/ic_dialog_map"
         android:supportsRtl="true"
-        android:theme="@android:style/Theme.Material.NoActionBar" >
+        android:theme="@style/Theme.IntelliDR" >
         <activity
             android:name="com.logiclegend2.intellidr.MainActivity"
             android:exported="true"
-            android:theme="@android:style/Theme.Material.NoActionBar" >
+            android:theme="@style/Theme.IntelliDR" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

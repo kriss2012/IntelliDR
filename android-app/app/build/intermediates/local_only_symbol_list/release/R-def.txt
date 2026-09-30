@@ -10,3 +10,4 @@ string app_name
 string sih_problem
 string team_name
 string theme_smart_vehicles
+style Theme.IntelliDR

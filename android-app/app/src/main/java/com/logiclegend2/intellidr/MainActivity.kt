@@ -6,7 +6,9 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.*
 import androidx.core.content.ContextCompat
@@ -16,6 +18,7 @@ import com.logiclegend2.intellidr.model.VehicleTelemetry
 import com.logiclegend2.intellidr.sensor.SensorCollector
 import com.logiclegend2.intellidr.service.NavigationForegroundService
 import com.logiclegend2.intellidr.ui.*
+import com.logiclegend2.intellidr.ui.theme.IntelliDRTheme
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
@@ -43,67 +46,76 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
+
         engine = OnDeviceNavigationEngine()
         sensorCollector = SensorCollector(this)
 
         checkAndRequestPermissions()
 
         setContent {
-            var currentScreen by remember { mutableStateOf(AppScreen.JUDGE_MODE) }
-            var telemetry by remember { mutableStateOf(engine.telemetry) }
-            var isOutageSim by remember { mutableStateOf(false) }
+            IntelliDRTheme {
+                var currentScreen by remember { mutableStateOf(AppScreen.JUDGE_MODE) }
+                var telemetry by remember { mutableStateOf(engine.telemetry) }
+                var isOutageSim by remember { mutableStateOf(false) }
 
-            // Collect sensor updates in Compose
-            LaunchedEffect(Unit) {
-                lifecycleScope.launch {
-                    sensorCollector.imuFlow.collectLatest { imu ->
-                        telemetry = engine.processIMU(imu)
+                // System back button handler
+                BackHandler(enabled = currentScreen != AppScreen.JUDGE_MODE) {
+                    currentScreen = AppScreen.JUDGE_MODE
+                }
+
+                // Collect sensor updates in Compose
+                LaunchedEffect(Unit) {
+                    lifecycleScope.launch {
+                        sensorCollector.imuFlow.collectLatest { imu ->
+                            telemetry = engine.processIMU(imu)
+                        }
+                    }
+                    lifecycleScope.launch {
+                        sensorCollector.gnssFlow.collectLatest { gnss ->
+                            telemetry = engine.processGNSS(gnss)
+                        }
                     }
                 }
-                lifecycleScope.launch {
-                    sensorCollector.gnssFlow.collectLatest { gnss ->
-                        telemetry = engine.processGNSS(gnss)
+
+                val toggleOutage: () -> Unit = {
+                    isOutageSim = !isOutageSim
+                    engine.triggerSimulatedOutage(isOutageSim)
+                    telemetry = engine.telemetry
+                }
+
+                when (currentScreen) {
+                    AppScreen.NAVIGATION -> {
+                        NavigationScreen(
+                            telemetry = telemetry,
+                            isSimulatingOutage = isOutageSim,
+                            onToggleOutage = toggleOutage,
+                            onOpenJudgeMode = { currentScreen = AppScreen.JUDGE_MODE }
+                        )
                     }
-                }
-            }
-
-            val toggleOutage: () -> Unit = {
-                isOutageSim = !isOutageSim
-                engine.triggerSimulatedOutage(isOutageSim)
-                telemetry = engine.telemetry
-            }
-
-            when (currentScreen) {
-                AppScreen.NAVIGATION -> {
-                    NavigationScreen(
-                        telemetry = telemetry,
-                        isSimulatingOutage = isOutageSim,
-                        onToggleOutage = toggleOutage,
-                        onOpenJudgeMode = { currentScreen = AppScreen.JUDGE_MODE }
-                    )
-                }
-                AppScreen.JUDGE_MODE -> {
-                    SihJudgeScreen(
-                        telemetry = telemetry,
-                        isSimulatingOutage = isOutageSim,
-                        onToggleOutage = toggleOutage,
-                        onStartLiveTest = {
-                            startNavigation()
-                            currentScreen = AppScreen.NAVIGATION
-                        },
-                        onOpenComparison = { currentScreen = AppScreen.COMPARISON },
-                        onOpenHealth = { currentScreen = AppScreen.HEALTH },
-                        onOpenMetrics = { currentScreen = AppScreen.METRICS }
-                    )
-                }
-                AppScreen.COMPARISON -> {
-                    ComparisonScreen(onBack = { currentScreen = AppScreen.JUDGE_MODE })
-                }
-                AppScreen.HEALTH -> {
-                    SensorHealthScreen(onBack = { currentScreen = AppScreen.JUDGE_MODE })
-                }
-                AppScreen.METRICS -> {
-                    MetricsDashboardScreen(onBack = { currentScreen = AppScreen.JUDGE_MODE })
+                    AppScreen.JUDGE_MODE -> {
+                        SihJudgeScreen(
+                            telemetry = telemetry,
+                            isSimulatingOutage = isOutageSim,
+                            onToggleOutage = toggleOutage,
+                            onStartLiveTest = {
+                                startNavigation()
+                                currentScreen = AppScreen.NAVIGATION
+                            },
+                            onOpenComparison = { currentScreen = AppScreen.COMPARISON },
+                            onOpenHealth = { currentScreen = AppScreen.HEALTH },
+                            onOpenMetrics = { currentScreen = AppScreen.METRICS }
+                        )
+                    }
+                    AppScreen.COMPARISON -> {
+                        ComparisonScreen(onBack = { currentScreen = AppScreen.JUDGE_MODE })
+                    }
+                    AppScreen.HEALTH -> {
+                        SensorHealthScreen(onBack = { currentScreen = AppScreen.JUDGE_MODE })
+                    }
+                    AppScreen.METRICS -> {
+                        MetricsDashboardScreen(onBack = { currentScreen = AppScreen.JUDGE_MODE })
+                    }
                 }
             }
         }
