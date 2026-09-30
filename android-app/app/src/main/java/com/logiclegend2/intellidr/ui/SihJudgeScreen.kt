@@ -467,7 +467,7 @@ fun LiveMiniMap(
         }
 
         // Vehicle Chevron rotated by heading
-        val headRad = Math.toRadians(telemetry.headingDeg)
+        val headRad = Math.toRadians(telemetry.headingDeg.toDouble())
         val markerSize = 20.dp.toPx()
         val tipX = center.x + markerSize * sin(headRad).toFloat()
         val tipY = center.y - markerSize * cos(headRad).toFloat()
