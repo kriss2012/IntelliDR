@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="accent_blue">#38BDF8</color>
+    <color name="card_dark">#1E293B</color>
+    <color name="primary_dark">#0F172A</color>
+    <color name="status_green">#10B981</color>
+    <color name="status_red">#EF4444</color>
+    <color name="status_yellow">#F59E0B</color>
+    <string name="app_name">IntelliDR</string>
+    <string name="sih_problem">SIH26168 - AI-ML Based Dead Reckoning</string>
+    <string name="team_name">Logic Legend2 (Team ID: 170889)</string>
+    <string name="theme_smart_vehicles">Theme: Smart Vehicles</string>
+</resources>

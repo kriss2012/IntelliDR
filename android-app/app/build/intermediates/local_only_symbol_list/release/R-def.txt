@@ -1,0 +1,12 @@
+R_DEF: Internal format may change without notice
+local
+color accent_blue
+color card_dark
+color primary_dark
+color status_green
+color status_red
+color status_yellow
+string app_name
+string sih_problem
+string team_name
+string theme_smart_vehicles

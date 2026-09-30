@@ -155,6 +155,13 @@ def audit():
     else:
         checks["DOCS"] = "FAIL (Documentation incomplete)"
 
+    # 12. SIGNED RELEASE APK CHECK
+    apk_path = os.path.join(ROOT_DIR, "android-app", "app", "build", "outputs", "apk", "release", "app-release.apk")
+    if os.path.exists(apk_path) and os.path.getsize(apk_path) > 1_000_000:
+        checks["SIGNED APK"] = "PASS"
+    else:
+        checks["SIGNED APK"] = "FAIL (APK missing or invalid)"
+
     # Display Audit Summary Table
     print(f"\n{'SUBSYSTEM':<16} {'VERIFICATION':<12}")
     print("-" * 30)

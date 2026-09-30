@@ -1,0 +1,19 @@
+{
+    "logs": [
+        {
+            "outputFile": "com.logiclegend2.intellidr.app-mergeReleaseResources-40:/values-v16/values-v16.xml",
+            "map": [
+                {
+                    "source": "C:\\Users\\IMRD\\.gradle\\caches\\8.14\\transforms\\7a0cb0a5476081bad58c057f6a0d04fa\\transformed\\core-1.12.0\\res\\values-v16\\values-v16.xml",
+                    "from": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endColumns": "65",
+                        "endOffsets": "116"
+                    }
+                }
+            ]
+        }
+    ]
+}
