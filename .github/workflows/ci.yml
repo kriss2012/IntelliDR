@@ -22,80 +22,84 @@ concurrency:
 
 jobs:
   test-and-audit:
-    name: Test, Benchmark & Quality Audit
+    name: IntelliDR Tests, Benchmark & Audit
     runs-on: ubuntu-latest
 
     steps:
-      # ==========================================================
-      # CHECKOUT
-      # ==========================================================
+
+      # ============================================================
+      # 1. CHECKOUT
+      # ============================================================
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      # ==========================================================
-      # PYTHON
-      # ==========================================================
+      # ============================================================
+      # 2. PYTHON
+      # ============================================================
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache: pip
 
-      # ==========================================================
-      # ENVIRONMENT INFORMATION
-      # ==========================================================
+      # ============================================================
+      # 3. ENVIRONMENT
+      # ============================================================
       - name: Show Environment
         run: |
+          echo "=============================================="
+          echo " IntelliDR CI Environment"
+          echo "=============================================="
+
           python --version
           python -m pip --version
+
+          echo
           echo "Working directory:"
           pwd
 
-      # ==========================================================
-      # VERIFY PROJECT STRUCTURE
-      # ==========================================================
-      - name: Verify IntelliDR Project Structure
+          echo
+          echo "Repository:"
+          git remote -v
+
+      # ============================================================
+      # 4. VERIFY PROJECT STRUCTURE
+      # ============================================================
+      - name: Verify Project Structure
         shell: bash
         run: |
-          echo "===== ROOT DIRECTORY ====="
-          ls -la
+          set -e
+
+          echo "=============================================="
+          echo " Checking IntelliDR Project Structure"
+          echo "=============================================="
+
+          required_files=(
+            "requirements.txt"
+            "tests/test_backend_api.py"
+            "edge/setup.py"
+            "edge/intellidr_edge/cli/main.py"
+            "scripts/final_audit.py"
+            "backend/main.py"
+          )
+
+          for file in "${required_files[@]}"; do
+            if [ -f "$file" ]; then
+              echo "✓ $file"
+            else
+              echo "✗ Missing: $file"
+              exit 1
+            fi
+          done
 
           echo
-          echo "===== IMPORTANT DIRECTORIES ====="
+          echo "Project structure verified."
 
-          test -f requirements.txt \
-            && echo "✓ requirements.txt found" \
-            || { echo "✗ requirements.txt missing"; exit 1; }
-
-          test -d tests \
-            && echo "✓ tests/ found" \
-            || { echo "✗ tests/ missing"; exit 1; }
-
-          test -d edge \
-            && echo "✓ edge/ found" \
-            || { echo "✗ edge/ missing"; exit 1; }
-
-          test -f scripts/final_audit.py \
-            && echo "✓ scripts/final_audit.py found" \
-            || { echo "✗ scripts/final_audit.py missing"; exit 1; }
-
-          echo
-          echo "===== EDGE DIRECTORY ====="
-          find edge -maxdepth 3 -type f | sort
-
-          echo
-          echo "===== TEST DIRECTORY ====="
-          find tests -maxdepth 3 -type f | sort
-
-          echo
-          echo "===== SCRIPTS DIRECTORY ====="
-          find scripts -maxdepth 2 -type f | sort
-
-      # ==========================================================
-      # UPGRADE BUILD TOOLS
-      # ==========================================================
+      # ============================================================
+      # 5. UPGRADE BUILD TOOLS
+      # ============================================================
       - name: Upgrade Python Build Tools
         run: |
           python -m pip install --upgrade \
@@ -103,143 +107,190 @@ jobs:
             setuptools \
             wheel
 
-      # ==========================================================
-      # INSTALL ROOT DEPENDENCIES
-      # ==========================================================
+      # ============================================================
+      # 6. INSTALL PROJECT DEPENDENCIES
+      # ============================================================
       - name: Install Project Dependencies
         run: |
           python -m pip install -r requirements.txt
 
-      # ==========================================================
-      # INSTALL EDGE PACKAGE
-      # ==========================================================
-      - name: Install IntelliDR Edge Package
-        shell: bash
+      # ============================================================
+      # 7. INSTALL EDGE ENGINE
+      # ============================================================
+      - name: Install IntelliDR Edge Engine
         run: |
-          if [ -f "edge/pyproject.toml" ]; then
-            echo "✓ edge/pyproject.toml found"
-            python -m pip install -e ./edge
+          python -m pip install -e ./edge
 
-          elif [ -f "edge/setup.py" ]; then
-            echo "✓ edge/setup.py found"
-            python -m pip install -e ./edge
-
-          else
-            echo "✗ edge/ is not a Python package"
-            echo
-            echo "Expected one of:"
-            echo "  edge/pyproject.toml"
-            echo "  edge/setup.py"
-            echo
-            echo "Current edge contents:"
-            find edge -maxdepth 3 -type f | sort
-            exit 1
-          fi
-
-      # ==========================================================
-      # TEST DEPENDENCIES
-      # ==========================================================
-      - name: Install CI Dependencies
+      # ============================================================
+      # 8. INSTALL BACKEND + TEST DEPENDENCIES
+      # ============================================================
+      #
+      # IMPORTANT:
+      # httpx2 is required by the Starlette TestClient used by
+      # tests/test_backend_api.py.
+      #
+      # The previous workflow did NOT install it.
+      #
+      # ============================================================
+      - name: Install Backend & Test Dependencies
         run: |
           python -m pip install \
-            pytest \
-            pytest-cov \
             fastapi \
             uvicorn \
-            pydantic
+            pydantic \
+            pytest \
+            pytest-cov \
+            httpx2
 
-      # ==========================================================
-      # VERIFY INSTALLATION
-      # ==========================================================
-      - name: Verify IntelliDR Installation
-        shell: bash
+      # ============================================================
+      # 9. VERIFY CRITICAL IMPORTS
+      # ============================================================
+      - name: Verify Critical Python Imports
         run: |
           python - <<'PY'
           import sys
 
           print("Python:", sys.version)
 
-          try:
-              import intellidr_edge
+          # FastAPI
+          import fastapi
+          print("✓ FastAPI:", fastapi.__version__)
 
-              print("✓ intellidr_edge imported successfully")
-              print("Package:", intellidr_edge.__file__)
+          # Pydantic
+          import pydantic
+          print("✓ Pydantic:", pydantic.__version__)
 
-          except Exception as exc:
-              print("✗ Failed to import intellidr_edge")
-              print(f"{type(exc).__name__}: {exc}")
-              raise
+          # Pytest
+          import pytest
+          print("✓ Pytest:", pytest.__version__)
+
+          # TestClient
+          from fastapi.testclient import TestClient
+          print("✓ FastAPI TestClient")
+
+          # Edge engine
+          import intellidr_edge
+          print("✓ intellidr_edge:", intellidr_edge.__file__)
+
+          # Core engine
+          import intellidr_core
+          print("✓ intellidr_core:", intellidr_core.__file__)
+
+          print()
+          print("All critical imports passed.")
           PY
 
-      # ==========================================================
-      # DISCOVER TESTS
-      # ==========================================================
+      # ============================================================
+      # 10. VERIFY TESTCLIENT SPECIFICALLY
+      # ============================================================
+      - name: Verify FastAPI TestClient
+        run: |
+          python - <<'PY'
+          from fastapi.testclient import TestClient
+          from backend.main import app
+
+          client = TestClient(app)
+
+          response = client.get("/")
+
+          print("HTTP status:", response.status_code)
+          print("Response:", response.json())
+
+          assert response.status_code == 200
+          assert response.json()["project"] == "IntelliDR"
+
+          print("✓ FastAPI TestClient verification passed.")
+          PY
+
+      # ============================================================
+      # 11. CHECK PYTHON DEPENDENCIES
+      # ============================================================
+      - name: Validate Python Dependencies
+        run: |
+          python -m pip check
+
+      # ============================================================
+      # 12. SHOW TEST FILES
+      # ============================================================
       - name: Discover Tests
         run: |
-          echo "===== TEST FILES ====="
-          find tests -type f \
-            \( -name "test_*.py" -o -name "*_test.py" \) \
-            -print
+          echo "=============================================="
+          echo " IntelliDR Test Suite"
+          echo "=============================================="
 
-      # ==========================================================
-      # RUN TESTS
-      # ==========================================================
+          find tests \
+            -type f \
+            \( -name "test_*.py" -o -name "*_test.py" \) \
+            -print | sort
+
+      # ============================================================
+      # 13. RUN UNIT + INTEGRATION TESTS
+      # ============================================================
       - name: Run Unit & Integration Tests
         run: |
           python -m pytest tests/ \
             -v \
             --tb=short \
-            --color=yes
+            --color=yes \
+            --junitxml=test-results.xml
 
-      # ==========================================================
-      # RUN BENCHMARK
-      # ==========================================================
+      # ============================================================
+      # 14. RUN SIH BENCHMARK
+      # ============================================================
       - name: Run SIH Benchmark Suite
-        shell: bash
         run: |
           python -m intellidr_edge.cli.main benchmark
 
-      # ==========================================================
-      # FINAL QUALITY AUDIT
-      # ==========================================================
+      # ============================================================
+      # 15. VERIFY BENCHMARK COMPLETION
+      # ============================================================
+      - name: Verify Benchmark Result
+        run: |
+          echo "Benchmark command completed successfully."
+
+          if [ -f "data/evaluation/benchmark_results.json" ]; then
+            echo "✓ Benchmark results file found."
+            cat data/evaluation/benchmark_results.json
+          else
+            echo "ℹ Benchmark results file not generated."
+            echo "CLI benchmark completed successfully."
+          fi
+
+      # ============================================================
+      # 16. RUN FINAL QUALITY AUDIT
+      # ============================================================
       - name: Run Final Quality Gate Audit
-        shell: bash
         run: |
           python scripts/final_audit.py
 
-      # ==========================================================
-      # PACKAGE VALIDATION
-      # ==========================================================
-      - name: Validate Python Packages
-        run: |
-          python -m pip check
-
-      # ==========================================================
-      # GENERATE TEST REPORT
-      # ==========================================================
-      - name: Generate Test Report
-        if: always()
-        shell: bash
-        run: |
-          mkdir -p ci-reports
-
-          python -m pytest tests/ \
-            --tb=short \
-            --junitxml=ci-reports/pytest.xml \
-            || true
-
-      # ==========================================================
-      # UPLOAD CI ARTIFACTS
-      # ==========================================================
-      - name: Upload CI Reports
+      # ============================================================
+      # 17. UPLOAD TEST RESULTS
+      # ============================================================
+      - name: Upload Test Results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: intellidr-ci-reports
+          name: intellidr-test-results
           path: |
-            ci-reports/
+            test-results.xml
             reports/
             test-results/
             benchmark-results/
-            artifacts/
           if-no-files-found: ignore
+
+      # ============================================================
+      # 18. FINAL SUCCESS MESSAGE
+      # ============================================================
+      - name: CI Success
+        if: success()
+        run: |
+          echo "=============================================="
+          echo "       INTELLIDR CI PIPELINE PASSED"
+          echo "=============================================="
+          echo "✓ Dependencies installed"
+          echo "✓ FastAPI TestClient verified"
+          echo "✓ Unit tests passed"
+          echo "✓ Integration tests passed"
+          echo "✓ SIH benchmark passed"
+          echo "✓ Final audit passed"
+          echo "=============================================="
