@@ -1,0 +1,9 @@
+# GitHub Sponsors / Funding Configuration
+#
+# This file enables the repository Sponsor button.
+# The custom URL points to the detailed IntelliDR sponsorship proposal.
+#
+# GitHub documentation:
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/displaying-a-sponsor-button-in-your-repository
+
+custom: ["https://github.com/kriss2012/IntelliDR/blob/main/SPONSOR.md"]
